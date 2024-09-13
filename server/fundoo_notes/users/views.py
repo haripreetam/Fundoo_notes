@@ -1,106 +1,132 @@
-import json
-import re
+from datetime import datetime, timedelta, timezone
 
+import jwt
+from django.conf import settings
 from django.contrib.auth import authenticate
-from django.forms import model_to_dict
+from django.core.mail import send_mail
 from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.http import require_POST
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Users
+from .serializers import UserLoginSerializer, UserRegistrationSerializer
 
 
-#registering user 
-@require_POST
-def register_user(request):
-
+def verify_registered_user(request, token):
     try:
-        data = json.loads(request.body)
-        username = data.get("username")
-        email = data.get("email")
-        password = data.get("password")
-
-        if not username or not email or not password:
-            return JsonResponse({
-                "message": "[username,email,]",
-                "status": "error"
-                }, status=400)
+        # Decode the token
+        decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
         
-
-        # Validating username
-        if not isinstance(username, str):
-            return JsonResponse({
-                "message": "Username must be a string",
-                "status": "error"
-            }, status=400)
-        
-        # Validating email which end with gmail.com after @ 
-        email = email.lower()
-        email_regex = r'^[a-z0-9._%+-]+@[a-z0-9]+\.[a-z]{2,}$'
-        if not re.match(email_regex, email):
-            return JsonResponse({
-                "message": "Email must be a valid domain address",
-                "status": "error"
-            }, status=400)
-        
-        #password length should be minimum 8
-        if len(password) < 8:
-            return JsonResponse({
-                "message": "Password must be at least 8 characters long",
-                "status": "error"
-            }, status=400)
-
-        if Users.objects.filter(username=username).exists():
-            return JsonResponse({
-                "message": "user allready exist",
-                "status": "error"
-                }, status=400)
-
-        user = Users.objects.create_user(username=username, email=email, password=password)
-        user_data = model_to_dict(user)
-
+        # If token is valid, return the decoded
         return JsonResponse({
-            "message": "User registered successfully",
+            "message": "Token is valid",
             "status": "success",
-            "data": user_data
-        }, status=201)
-
-    except Exception as e:
-        return JsonResponse({"message": "Unexpected error occured", "error": str(e)}, status=500)
-
-
-#login user 
-@require_POST
-def login_user(request):
-
-    try:
-        data = json.loads(request.body)
-        email = data.get('email')
-        password = data.get('password')
-
-        if not email and not password:
-            return JsonResponse({
-                "message": "email and password required",
-                "status": "error"
-                }, status=400)
-
-        user = authenticate(username=email, password=password)
-        user_data=model_to_dict(user)
-        if user is not None:
-            return JsonResponse({
-                "message": "User logined successfully",
-                "status": "success",
-                "data":user_data
-                }, status=201)
-
-        else:
-            return JsonResponse({
-                "message": "invalid username and password",
-                "status": "error"
-                }, status=401)
-
-    except json.JSONDecodeError:
+            "data": decoded_token,
+        },status=status.HTTP_202_ACCEPTED)
+    
+    except ExpiredSignatureError:
         return JsonResponse({
-            "message": "invalid JSON",
+            "message": "Token has expired",
             "status": "error"
-            }, status=400)
+        }, status=400)
+
+    except InvalidTokenError:
+        return JsonResponse({
+            "message": "Invalid token",
+            "status": "error"
+        }, status=400)
+
+
+class RegisterUserView(APIView):
+    authentication_classes = []
+    permission_classes = []
+    @csrf_exempt
+    def post(self, request):
+    
+        try:
+            serializer = UserRegistrationSerializer(data=request.data)
+    
+            if serializer.is_valid():
+                user = serializer.save()
+
+                # Generate JWT token
+                payload = {
+                    'user_id': user.id,
+                    'exp': datetime.now(tz=timezone.utc)+ timedelta(hours=24),
+                    'iat': datetime.now(tz=timezone.utc)
+                }
+                token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
+                # Create verification URL with token
+                # verification_url = f"http://127.0.0.1:8000/users/verify/{token}/"
+                verification_url = request.build_absolute_uri(
+                        reverse('verify_registered_user', args=[token])
+                    )
+                # Send email with verification token
+                send_mail(
+                    'Verify Your Email',
+                    f'Click the link to verify your email: {verification_url}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+
+                return Response({
+                    "message": "User registered successfully",
+                    "status": "success",
+                    "data": serializer.data
+                }, status=status.HTTP_201_CREATED)
+            
+            else:
+                return Response({
+                    "message": "Validation error",
+                    "status": "error",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+
+            return Response({
+                "message": "An unexpected error occurred",
+                "status": "error",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+class LoginUserView(APIView):
+    authentication_classes = []
+    permission_classes = []
+    def post(self, request):
+        try:
+            serializer = UserLoginSerializer(data=request.data)
+            if serializer.is_valid():
+                user = serializer.validated_data['user']
+                
+                # generate JWT Token manually.
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    "message": "User logged in successfully",
+                    "status": "success",
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token)
+                }, status=status.HTTP_200_OK)
+            
+            return Response({
+                "message": "Validation error",
+                "status": "error",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({
+                "message": "An unexpected error occurred",
+                "status": "error",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
