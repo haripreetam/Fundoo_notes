@@ -10,10 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
 from decouple import config
+from loguru import logger
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -156,12 +158,13 @@ SIMPLE_JWT = {
 
 
 # Email setup
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
-EMAIL_HOST_USER = '88cae1672ee823'
-EMAIL_HOST_PASSWORD = '6965d353d02ac2'
-EMAIL_PORT = 2525
-EMAIL_USE_TLS = True
+EMAIL_BACKEND = config('EMAIL_BACKEND')
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_PORT = config('EMAIL_PORT', cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+
 
 
 # # CSRF Settings
@@ -170,3 +173,72 @@ EMAIL_USE_TLS = True
 # CSRF_USE_SESSIONS = False
 # CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
 
+
+# Loguru settings for handlers
+LOG_DIR = BASE_DIR / 'logs'
+os.makedirs(LOG_DIR, exist_ok=True)
+
+LOGURU_SETTINGS = {
+    "handlers": [
+        {
+            "sink": LOG_DIR / "trace.log",
+            "level": "TRACE",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False
+        },
+        {
+            "sink": LOG_DIR / "debug.log",
+            "level": "DEBUG",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False
+        },
+        {
+            "sink": LOG_DIR / "info.log",
+            "level": "INFO",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False
+        },
+        {
+            "sink": LOG_DIR / "success.log",
+            "level": "SUCCESS",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False
+        },
+        {
+            "sink": LOG_DIR / "warning.log",
+            "level": "WARNING",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False
+        },
+        {
+            "sink": LOG_DIR / "error.log",
+            "level": "ERROR",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False
+        },
+        {
+            "sink": LOG_DIR / "critical.log",
+            "level": "CRITICAL",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False
+        },
+    ],
+}
+
+# Apply the Loguru settings
+for handler in LOGURU_SETTINGS["handlers"]:
+    logger.add(**handler)
