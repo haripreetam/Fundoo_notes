@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from rest_framework import status
+from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -19,30 +20,52 @@ from .models import Users
 from .serializers import UserLoginSerializer, UserRegistrationSerializer
 
 
-def verify_registered_user(request, token):
+@api_view(['GET'])
+def verify_registered_user(request, token: str):
+    
     try:
-
-        # Decode the token
         decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-        
-        # If token is valid, return the decoded
-        return JsonResponse({
-            "message": "Token is valid",
-            "status": "success",
-            "data": decoded_token,
-        },status=status.HTTP_202_ACCEPTED)
-    
+        user_id = decoded_token.get("user_id")
+        user = Users.objects.get(id=user_id)
+
+        if user.is_verified:
+            return Response({
+                'message': 'User is already verified',
+                'status': 'success'
+            }, status=status.HTTP_200_OK)
+
+        user.is_verified = True
+        user.save()
+
+        return Response({
+            'message': 'User verified successfully',
+            'status': 'success'
+        }, status=status.HTTP_200_OK)
+
     except ExpiredSignatureError:
-        return JsonResponse({
-            "message": "Token has expired",
-            "status": "error"
-        }, status=400) 
-    
+        return Response({
+            'message': 'Verification link has expired',
+            'status': 'error',
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     except InvalidTokenError:
-        return JsonResponse({
-            "message": "Invalid token",
-            "status": "error"
-        }, status=400)
+        return Response({
+            'message': 'Invalid verification link',
+            'status': 'error',
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Users.DoesNotExist:
+        return Response({
+            'message': 'User not found',
+            'status': 'error',
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        return Response({
+            'message': 'An unexpected error occurred during verification',
+            'status': 'error',
+            'errors': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class RegisterUserView(APIView):
@@ -70,6 +93,7 @@ class RegisterUserView(APIView):
                 verification_url = request.build_absolute_uri(
                         reverse('verify_registered_user', args=[token])
                     )
+                
                 # Send email with verification token
                 send_mail(
                     'Verify Your Email',

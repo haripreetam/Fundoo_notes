@@ -10,12 +10,9 @@ from .models import Label
 from .serializers import LabelSerializer
 
 
-class LabelViewSet(mixins.CreateModelMixin,
-                   mixins.RetrieveModelMixin,
-                   mixins.UpdateModelMixin,
-                   mixins.DestroyModelMixin,
-                   mixins.ListModelMixin,
-                   viewsets.GenericViewSet):
+class LabelViewSet(mixins.CreateModelMixin,mixins.RetrieveModelMixin,
+                   mixins.UpdateModelMixin,mixins.DestroyModelMixin,
+                   mixins.ListModelMixin,viewsets.GenericViewSet):
 
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
