@@ -21,6 +21,7 @@ from .serializers import UserLoginSerializer, UserRegistrationSerializer
 
 def verify_registered_user(request, token):
     try:
+
         # Decode the token
         decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
         
@@ -35,8 +36,8 @@ def verify_registered_user(request, token):
         return JsonResponse({
             "message": "Token has expired",
             "status": "error"
-        }, status=400)
-
+        }, status=400) 
+    
     except InvalidTokenError:
         return JsonResponse({
             "message": "Invalid token",

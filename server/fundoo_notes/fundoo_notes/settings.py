@@ -38,6 +38,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'users.apps.UserConfig',
     'notes.apps.NotesConfig',
+    'label',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -242,3 +243,6 @@ LOGURU_SETTINGS = {
 # Apply the Loguru settings
 for handler in LOGURU_SETTINGS["handlers"]:
     logger.add(**handler)
+
+
+
