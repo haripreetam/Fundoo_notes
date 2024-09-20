@@ -182,36 +182,13 @@ os.makedirs(LOG_DIR, exist_ok=True)
 LOGURU_SETTINGS = {
     "handlers": [
         {
-            "sink": LOG_DIR / "trace.log",
-            "level": "TRACE",
-            "format": "{time} - {level} - {message}",
-            "rotation": "10 MB",
-            "compression": "zip",
-            "serialize": False
-        },
-        {
-            "sink": LOG_DIR / "debug.log",
-            "level": "DEBUG",
-            "format": "{time} - {level} - {message}",
-            "rotation": "10 MB",
-            "compression": "zip",
-            "serialize": False
-        },
-        {
-            "sink": LOG_DIR / "info.log",
-            "level": "INFO",
-            "format": "{time} - {level} - {message}",
-            "rotation": "10 MB",
-            "compression": "zip",
-            "serialize": False
-        },
-        {
             "sink": LOG_DIR / "success.log",
             "level": "SUCCESS",
             "format": "{time} - {level} - {message}",
             "rotation": "10 MB",
             "compression": "zip",
-            "serialize": False
+            "serialize": False,
+            "filter": lambda record: record["level"].name == "SUCCESS"
         },
         {
             "sink": LOG_DIR / "warning.log",
@@ -219,7 +196,8 @@ LOGURU_SETTINGS = {
             "format": "{time} - {level} - {message}",
             "rotation": "10 MB",
             "compression": "zip",
-            "serialize": False
+            "serialize": False,
+            "filter": lambda record: record["level"].name == "WARNING"
         },
         {
             "sink": LOG_DIR / "error.log",
@@ -227,7 +205,8 @@ LOGURU_SETTINGS = {
             "format": "{time} - {level} - {message}",
             "rotation": "10 MB",
             "compression": "zip",
-            "serialize": False
+            "serialize": False,
+            "filter": lambda record: record["level"].name == "ERROR"
         },
         {
             "sink": LOG_DIR / "critical.log",
@@ -235,14 +214,55 @@ LOGURU_SETTINGS = {
             "format": "{time} - {level} - {message}",
             "rotation": "10 MB",
             "compression": "zip",
-            "serialize": False
+            "serialize": False,
+            "filter": lambda record: record["level"].name == "CRITICAL"
         },
-    ],
+        {
+            "sink": LOG_DIR / "info.log",
+            "level": "INFO",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False,
+            "filter": lambda record: record["level"].name == "INFO"
+        },
+        {
+            "sink": LOG_DIR / "debug.log",
+            "level": "DEBUG",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False,
+            "filter": lambda record: record["level"].name == "DEBUG"
+        },
+        {
+            "sink": LOG_DIR / "trace.log",
+            "level": "TRACE",
+            "format": "{time} - {level} - {message}",
+            "rotation": "10 MB",
+            "compression": "zip",
+            "serialize": False,
+            "filter": lambda record: record["level"].name == "TRACE"
+        }
+    ]
 }
 
 # Apply the Loguru settings
 for handler in LOGURU_SETTINGS["handlers"]:
     logger.add(**handler)
+
+
+# redis settings
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
 
 
 

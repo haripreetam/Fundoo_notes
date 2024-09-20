@@ -68,14 +68,15 @@ class LabelViewSet(mixins.CreateModelMixin,mixins.RetrieveModelMixin,
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        
         except Exception as exc:
             logger.error(f"Exception: {exc}")
             return self.handle_exception(exc)
 
     def retrieve(self, request, *args, **kwargs):
-        
         try:
             return super().retrieve(request, *args, **kwargs)
+        
         except Exception as exc:
             return self.handle_exception(exc)
 
@@ -116,6 +117,7 @@ class LabelViewSet(mixins.CreateModelMixin,mixins.RetrieveModelMixin,
             return super().destroy(request, *args, **kwargs)
         except Exception as exc:
             return self.handle_exception(exc)
+        
 
     def list(self, request, *args, **kwargs):
         
