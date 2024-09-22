@@ -4,7 +4,6 @@ import jwt
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
-from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
@@ -18,6 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Users
 from .serializers import UserLoginSerializer, UserRegistrationSerializer
+from .task import send_verification_email
 
 
 @api_view(['GET'])
@@ -90,18 +90,12 @@ class RegisterUserView(APIView):
 
                 # Create verification URL with token
                 # verification_url = f"http://127.0.0.1:8000/users/verify/{token}/"
+                
                 verification_url = request.build_absolute_uri(
                         reverse('verify_registered_user', args=[token])
                     )
                 
-                # Send email with verification token
-                send_mail(
-                    'Verify Your Email',
-                    f'Click the link to verify your email: {verification_url}',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    fail_silently=False,
-                )
+                send_verification_email.delay(user.email, verification_url)
 
                 return Response({
                     "message": "User registered successfully",
