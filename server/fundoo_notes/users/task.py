@@ -7,7 +7,6 @@ from loguru import logger
 @shared_task
 def send_verification_email(user_email, verification_link):
 
-    print("Task started")  # Add this to check if the task starts
     logger.info(f"Sending verification email to {user_email}")
 
     

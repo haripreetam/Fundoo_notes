@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
@@ -12,6 +13,7 @@ from utils.utils import RedisUtils
 
 from .models import Note
 from .serializers import NoteSerializer
+from .tasks import send_reminder
 
 
 class NoteViewSet(viewsets.ViewSet):
@@ -98,6 +100,11 @@ class NoteViewSet(viewsets.ViewSet):
 
             notes_data.append(serializer.data)
             self.redis.save(cache_key, json.dumps(notes_data))
+
+            # setting the reminder
+            reminder_time = request.data.get('reminder')
+            if reminder_time:
+                send_reminder.delay(note.id)
 
             logger.success(f"Note created successfully for user {request.user.id}")
             return Response({
@@ -220,6 +227,11 @@ class NoteViewSet(viewsets.ViewSet):
                         break
 
                 self.redis.save(cache_key, json.dumps(notes_data))
+
+            # Send reminder if it exists
+            reminder_time = request.data.get('reminder')
+            if reminder_time:
+                send_reminder.delay(note.id)  # Schedule the reminder task
 
             return Response({
                 "message": "Note updated successfully",
