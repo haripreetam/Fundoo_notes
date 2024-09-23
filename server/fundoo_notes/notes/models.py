@@ -1,6 +1,7 @@
-from django.db import models
 # from django.contrib.auth.models import Users
 from django.conf import settings
+from django.db import models
+
 
 class Note(models.Model):
     title = models.CharField(max_length=255, null=False, db_index=True)
@@ -10,6 +11,7 @@ class Note(models.Model):
     is_archive = models.BooleanField(default=False, db_index=True)
     is_trash = models.BooleanField(default=False, db_index=True)
     reminder = models.DateTimeField(null=True, blank=True)
+    is_reminded = models.BooleanField(default=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     def __str__(self):

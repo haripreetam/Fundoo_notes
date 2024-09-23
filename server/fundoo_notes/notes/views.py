@@ -3,6 +3,9 @@ from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import now
 from loguru import logger
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -101,10 +104,8 @@ class NoteViewSet(viewsets.ViewSet):
             notes_data.append(serializer.data)
             self.redis.save(cache_key, json.dumps(notes_data))
 
-            # setting the reminder
-            reminder_time = request.data.get('reminder')
-            if reminder_time:
-                send_reminder.delay(note.id)
+            if note.reminder:
+                send_reminder(note.id)
 
             logger.success(f"Note created successfully for user {request.user.id}")
             return Response({
@@ -228,10 +229,8 @@ class NoteViewSet(viewsets.ViewSet):
 
                 self.redis.save(cache_key, json.dumps(notes_data))
 
-            # Send reminder if it exists
-            reminder_time = request.data.get('reminder')
-            if reminder_time:
-                send_reminder.delay(note.id)  # Schedule the reminder task
+            if note.reminder:
+                send_reminder(note.id)
 
             return Response({
                 "message": "Note updated successfully",
