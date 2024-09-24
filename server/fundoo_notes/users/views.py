@@ -6,6 +6,7 @@ from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+from drf_yasg.utils import swagger_auto_schema
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -71,6 +72,9 @@ def verify_registered_user(request, token: str):
 class RegisterUserView(APIView):
     authentication_classes = []
     permission_classes = []
+    @swagger_auto_schema(operation_summary='user_registration',
+                        request_body=UserRegistrationSerializer,
+                        responses={200:UserRegistrationSerializer,500:'Internal Server Error',400:'Invalid Data'})
     @csrf_exempt
     def post(self, request):
     
@@ -122,6 +126,9 @@ class RegisterUserView(APIView):
 class LoginUserView(APIView):
     authentication_classes = []
     permission_classes = []
+    @swagger_auto_schema(operation_summary='user_login',
+                        request_body=UserLoginSerializer,
+                        responses={200:UserLoginSerializer,500:'Internal Server Error',400:'Invalid Data'})
     def post(self, request):
         try:
             serializer = UserLoginSerializer(data=request.data)

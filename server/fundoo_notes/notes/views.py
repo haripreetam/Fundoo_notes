@@ -15,8 +15,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from utils.utils import RedisUtils
 
 from .models import Note
+from .schedule import schedule_reminder
 from .serializers import NoteSerializer
-from .tasks import send_reminder
 
 
 class NoteViewSet(viewsets.ViewSet):
@@ -104,8 +104,11 @@ class NoteViewSet(viewsets.ViewSet):
             notes_data.append(serializer.data)
             self.redis.save(cache_key, json.dumps(notes_data))
 
+            # if note.reminder:
+            #     send_reminder(note.id)
+
             if note.reminder:
-                send_reminder(note.id)
+                    schedule_reminder(note)
 
             logger.success(f"Note created successfully for user {request.user.id}")
             return Response({
@@ -229,8 +232,11 @@ class NoteViewSet(viewsets.ViewSet):
 
                 self.redis.save(cache_key, json.dumps(notes_data))
 
+            # if note.reminder:
+            #     send_reminder(note.id)
+
             if note.reminder:
-                send_reminder(note.id)
+                    schedule_reminder(note)
 
             return Response({
                 "message": "Note updated successfully",
