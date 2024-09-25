@@ -10,14 +10,8 @@ app = Celery('fundoo_notes')
 
 # Load task modules from all registered Django app configs.
 app.config_from_object('django.conf:settings', namespace='CELERY')
-app.autodiscover_tasks()
 
-app.conf.beat_schedule = {
-    'check-reminders-every-minute': {
-        'task': 'notes.tasks.check_reminders',
-        'schedule': crontab(),# Every minute
-    },
-}
+app.autodiscover_tasks()
 
 @app.task(bind=True)
 def debug_task(self):

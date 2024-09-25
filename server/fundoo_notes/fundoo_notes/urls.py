@@ -38,8 +38,8 @@ permission_classes=(permissions.AllowAny,),
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("users/",include('users.urls')),
-    path('api/', include('notes.urls')),
-    path('api/', include('label.urls')),
+    path('notes/', include('notes.urls')),
+    path('label/', include('label.urls')),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 
 ]

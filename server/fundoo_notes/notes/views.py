@@ -1,11 +1,9 @@
 import json
-from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
-from django.utils import timezone
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import now
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from loguru import logger
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -83,6 +81,12 @@ class NoteViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    
+    @swagger_auto_schema(request_body=openapi.Schema(type=openapi.TYPE_OBJECT,
+                    properties={'title': openapi.Schema(type=openapi.TYPE_STRING),'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                'color': openapi.Schema(type=openapi.TYPE_STRING),'reminder': openapi.Schema(type=openapi.TYPE_STRING)},
+                                required=[ 'title', 'description', 'color', 'reminder']),operation_summary='Create Notes')
+
     def create(self, request):
         """
         desc: Creates a new note for the authenticated user.
@@ -103,9 +107,6 @@ class NoteViewSet(viewsets.ViewSet):
 
             notes_data.append(serializer.data)
             self.redis.save(cache_key, json.dumps(notes_data))
-
-            # if note.reminder:
-            #     send_reminder(note.id)
 
             if note.reminder:
                     schedule_reminder(note)
@@ -207,6 +208,14 @@ class NoteViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    
+    @swagger_auto_schema(request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={'title': openapi.Schema(type=openapi.TYPE_STRING),'description': openapi.Schema(type=openapi.TYPE_STRING),
+                        'color': openapi.Schema(type=openapi.TYPE_STRING),'reminder': openapi.Schema(type=openapi.TYPE_STRING)},
+                        required=[ 'title', 'description', 'color', 'reminder']),
+                        operation_summary='Update Notes')
+    
     def update(self, request, pk=None):
         """
         desc: Updates a specific note for the authenticated user.
@@ -231,9 +240,6 @@ class NoteViewSet(viewsets.ViewSet):
                         break
 
                 self.redis.save(cache_key, json.dumps(notes_data))
-
-            # if note.reminder:
-            #     send_reminder(note.id)
 
             if note.reminder:
                     schedule_reminder(note)
@@ -274,6 +280,11 @@ class NoteViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    
+    @swagger_auto_schema(operation_summary='Deleting the note',
+                    request_body=NoteSerializer,
+                    responses={200:NoteSerializer,500:'Internal Server Error',400:'Invalid Data'})
+    
     def destroy(self, request, pk=None):
         """
         desc: Deletes a specific note for the authenticated user.
@@ -329,6 +340,14 @@ class NoteViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    
+    @swagger_auto_schema(request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={'title': openapi.Schema(type=openapi.TYPE_STRING),'description': openapi.Schema(type=openapi.TYPE_STRING),
+                        'color': openapi.Schema(type=openapi.TYPE_STRING),'reminder': openapi.Schema(type=openapi.TYPE_STRING)},
+                        required=[ 'title', 'description', 'color', 'reminder']),
+                        operation_summary='Archive  Notes')
 
     @action(detail=False, methods=['post'])
     def archive(self, request):
@@ -389,6 +408,14 @@ class NoteViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    
+    @swagger_auto_schema(request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={'title': openapi.Schema(type=openapi.TYPE_STRING),'description': openapi.Schema(type=openapi.TYPE_STRING),
+                        'color': openapi.Schema(type=openapi.TYPE_STRING),'reminder': openapi.Schema(type=openapi.TYPE_STRING)},
+                        required=[ 'title', 'description', 'color', 'reminder']),
+                        operation_summary='Trash Notes')
+    
     @action(detail=False, methods=['post'])
     def trash(self, request):
         """

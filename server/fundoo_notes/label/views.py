@@ -1,5 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import DatabaseError
+from drf_yasg.utils import swagger_auto_schema
 from loguru import logger
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
@@ -11,8 +12,8 @@ from .serializers import LabelSerializer
 
 
 class LabelViewSet(mixins.CreateModelMixin,mixins.RetrieveModelMixin,
-                   mixins.UpdateModelMixin,mixins.DestroyModelMixin,
-                   mixins.ListModelMixin,viewsets.GenericViewSet):
+                mixins.UpdateModelMixin,mixins.DestroyModelMixin,
+                mixins.ListModelMixin,viewsets.GenericViewSet):
 
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -23,7 +24,6 @@ class LabelViewSet(mixins.CreateModelMixin,mixins.RetrieveModelMixin,
         return self.queryset.filter(user=self.request.user)
 
     def handle_exception(self, exc):
-        
         if isinstance(exc, ObjectDoesNotExist):
             logger.warning(f"Label not found: {exc}")
             return Response({
@@ -56,6 +56,9 @@ class LabelViewSet(mixins.CreateModelMixin,mixins.RetrieveModelMixin,
                 'errors': str(exc)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @swagger_auto_schema(operation_description='creation of label',request_body=LabelSerializer,
+                        responses={200:LabelSerializer,400:'invalid data',500:'internal server error'})
+
     def create(self, request, *args, **kwargs):
     
         try:
@@ -79,7 +82,9 @@ class LabelViewSet(mixins.CreateModelMixin,mixins.RetrieveModelMixin,
         
         except Exception as exc:
             return self.handle_exception(exc)
-
+        
+    @swagger_auto_schema(operation_description="update label",request_body=LabelSerializer,
+                        responses={200:LabelSerializer,400:'invalid data',500:'internal server error'})
     def update(self, request, *args, **kwargs):
     
         try:
@@ -110,6 +115,8 @@ class LabelViewSet(mixins.CreateModelMixin,mixins.RetrieveModelMixin,
             logger.error(f"Exception: {exc}")
             return self.handle_exception(exc)
 
+    @swagger_auto_schema(operation_description="delete label",request_body=LabelSerializer,
+                        responses={200:LabelSerializer,400:'invalid data',500:'internal server error'})
 
     def destroy(self, request, *args, **kwargs):
     
