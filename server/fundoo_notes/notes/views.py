@@ -667,3 +667,113 @@ class NoteViewSet(viewsets.ViewSet):
                 {'message': 'An unexpected error occurred', 'status': 'error', 'errors': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+    @swagger_auto_schema(
+        method='post',
+        operation_description="add labels from a note",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'note_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'label_ids': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_INTEGER))
+            }
+        ),
+        responses={
+            200: "Labels removed successfully",
+            400: "Bad Request: Invalid input data.",
+            404: "Not Found: Note or labels not found.",
+            500: "Internal Server Error: An error occurred during removing labels."
+        }
+    )
+    @action(detail=False, methods=['post'])
+    def add_labels(self, request):
+        """
+        desc: Adds labels to a specific note.
+        params: request (Request): The HTTP request object with note ID and list of label IDs.
+        return: Response: Success message or error message.
+        """
+
+        note_id = request.data.get('note_id')
+        label_ids = request.data.get('label_ids', [])
+
+        if not isinstance(label_ids, list):
+            return Response(
+                {'message': 'Invalid input data', 'status': 'error'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            note = Note.objects.get(pk=note_id, user=request.user)
+            labels = Label.objects.filter(id__in=label_ids)
+            note.labels.add(*labels)
+            return Response(
+                {'message': 'Labels added successfully', 'status': 'success'},
+                status=status.HTTP_200_OK
+            )
+
+        except Note.DoesNotExist:
+            return Response(
+                {'message': 'Note not found', 'status': 'error', 'errors': 'The requested note does not exist.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error while adding labels: {e}")
+            return Response(
+                {'message': 'An unexpected error occurred', 'status': 'error', 'errors': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+    @swagger_auto_schema(
+        method='post',
+        operation_description="Remove labels from a note",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'note_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'label_ids': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Items(type=openapi.TYPE_INTEGER))
+            }
+        ),
+        responses={
+            200: "Labels removed successfully",
+            400: "Bad Request: Invalid input data.",
+            404: "Not Found: Note or labels not found.",
+            500: "Internal Server Error: An error occurred during removing labels."
+        }
+    )
+    @action(detail=False, methods=['post'])
+    def remove_labels(self, request):
+        """
+        desc: Removes labels from a specific note.
+        params: request (Request): The HTTP request object with note ID and list of label IDs.
+        return: Response: Success message or error message.
+        """
+        note_id = request.data.get('note_id')
+        label_ids = request.data.get('label_ids', [])
+
+        if not note_id or not isinstance(label_ids, list):
+            return Response(
+                {'message': 'Invalid input data', 'status': 'error'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            note = Note.objects.get(pk=note_id, user=request.user)
+            labels = Label.objects.filter(id__in=label_ids)
+            note.labels.remove(*labels)
+            return Response(
+                {'message': 'Labels removed successfully', 'status': 'success'},
+                status=status.HTTP_200_OK
+            )
+
+        except Note.DoesNotExist:
+            return Response(
+                {'message': 'Note not found', 'status': 'error', 'errors': 'The requested note does not exist.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error while removing labels: {e}")
+            return Response(
+                {'message': 'An unexpected error occurred', 'status': 'error', 'errors': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
