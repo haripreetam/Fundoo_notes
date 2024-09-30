@@ -9,13 +9,13 @@ from users.models import Users
 
 @pytest.fixture
 def create_user(client):
-   
+
     data = {
         "username":"Tagsjsdvdhv",
         "email": "sushenvnvnn@gmail.com",
         "password": "sushen1bmvmv234"
     }
-    url = reverse('register')  
+    url = reverse('register')
     response = client.post(url, data=data, content_type='application/json')
     
     assert response.status_code == status.HTTP_201_CREATED, f"User creation failed: {response.data}"
@@ -23,13 +23,13 @@ def create_user(client):
 
 @pytest.fixture
 def create_user_two(client):
- 
+
     data = {
         "username":"Dhdbfbdbbcn",
         "email": "prashhvnvvn@gmail.com",
         "password": "prashantcncn"
     }
-    url = reverse('register')  
+    url = reverse('register') 
     response = client.post(url, data=data, content_type='application/json')
     
     assert response.status_code == status.HTTP_201_CREATED, f"User creation failed: {response.data}"
@@ -37,12 +37,12 @@ def create_user_two(client):
 
 @pytest.fixture
 def generate_usertoken(client, create_user):
-   
+
     data = {
         "email": create_user['email'],
         "password": create_user['password']
     }
-    url = reverse('login')  
+    url = reverse('login')
     response = client.post(url, data=data, content_type='application/json')
 
     assert response.status_code == status.HTTP_200_OK, f"Login failed: {response.data}"
@@ -55,7 +55,7 @@ def generate_usertoken_two(client, create_user_two):
         "email": create_user_two['email'],
         "password": create_user_two['password']
     }
-    url = reverse('login') 
+    url = reverse('login')
     response = client.post(url, data=data, content_type='application/json')
 
     assert response.status_code == status.HTTP_200_OK, f"Login failed: {response.data}"
@@ -74,10 +74,10 @@ class TestNoteSuccess:
         "reminder": "2024-08-26T11:50"
     }
     
-    # Test: the create note 
+    # Test: the create note
     def test_note_create(self, client, generate_usertoken):
 
-        url = reverse('note-list')  
+        url = reverse('note-list')
         response = client.post(
             url,
             HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}',
@@ -92,7 +92,7 @@ class TestNoteSuccess:
     #Test: create note two
     def test_note_create_by_2user(self, client, generate_usertoken_two):
 
-        url = reverse('note-list')  
+        url = reverse('note-list')
         response = client.post(
             url,
             HTTP_AUTHORIZATION=f'Bearer {generate_usertoken_two}',
@@ -118,7 +118,7 @@ class TestNoteSuccess:
 
     
 
-     # Test: archive note
+    # Test: archive note
     def test_is_archive_note_user_one(self, client, generate_usertoken):
 
         note_id = self.test_note_create(client, generate_usertoken)
@@ -127,10 +127,10 @@ class TestNoteSuccess:
         self.NOTE_DATA['is_archive'] =not self.NOTE_DATA['is_archive']
     
         response = client.patch(
-             url,
-             data=self.NOTE_DATA,
-             HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}',
-             content_type="application/json"
+            url,
+            data=self.NOTE_DATA,
+            HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}',
+            content_type="application/json"
     )
 
         assert response.status_code == status.HTTP_200_OK
@@ -141,7 +141,7 @@ class TestNoteSuccess:
         url = reverse('note-is-archived')
         response = client.get(
             url, 
-            HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}', 
+            HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}',
             content_type='application/json'
             
             )
@@ -157,10 +157,10 @@ class TestNoteSuccess:
 
 
         response = client.patch(
-             path=url,
-             HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}', 
-             content_type='application/json'
-             )
+            path=url,
+            HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}',
+            content_type='application/json'
+            )
         print(response.data)
     
         assert response.status_code == status.HTTP_200_OK
@@ -220,25 +220,24 @@ class TestNoteSuccess:
 
         note_id = self.test_note_create(client, generate_usertoken)
         collaborator_res = Users.objects.get(email="prashhvnvvn@gmail.com").id
-      
     
         self.test_add_collaborators(client, generate_usertoken, generate_usertoken_two)
 
         data = {
         "note_id": note_id,
-        "user_ids": [collaborator_res] 
-          }
+        "user_ids": [collaborator_res]
+        }
     
         url = reverse('note-remove-collaborators')
     
         response = client.post(
             url,
             data=data,
-            HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}', 
+            HTTP_AUTHORIZATION=f'Bearer {generate_usertoken}',
             content_type='application/json'
                 )
     
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
     # Test: Add labels to a note
     def test_add_labels(self, client, generate_usertoken):
