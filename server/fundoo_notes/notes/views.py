@@ -234,8 +234,8 @@ class NoteViewSet(viewsets.ViewSet):
         return: Response: Serialized note data or error message.
         """
         try:
-            note = Note.objects.get(
-            Q(pk=pk) & (Q(user=request.user) | Q(collaborator__user=request.user)))
+            note = Note.objects.get(pk=pk, user=request.user)
+
             serializer = NoteSerializer(note, data=request.data)
             serializer.is_valid(raise_exception=True)
             note = serializer.save()
@@ -310,6 +310,7 @@ class NoteViewSet(viewsets.ViewSet):
 
             cache_key = request.user.id
             notes_data = self.redis.get(cache_key)
+
             if notes_data:
                 notes_data = json.loads(notes_data) # type: ignore
                 notes_data = [
@@ -365,14 +366,25 @@ class NoteViewSet(viewsets.ViewSet):
         return: Response: Updated note data or error message.
         """
         try:
-            note = Note.objects.get(
-                Q(pk=pk) & (Q(user=request.user) | Q(collaborator__user=request.user))
-            )
+            note = Note.objects.get(pk=pk, user=request.user)
             note.is_archive = not note.is_archive
             note.save()
-            self.redis.delete(f"user_{request.user.id}")
+
+            notes = self.redis.get(note.id)
+            # If cache is empty, create a new cache entry
+            if not notes:
+                notes = [note]
+            else:
+                notes.append(note)
+
+            # Save the updated notes back into Redis
+            self.redis.save(note.id, notes)
+            logger.info("Note stored/updated in cache")
+
+
             serializer = NoteSerializer(note, raise_exception=True)
             return Response(serializer.data)
+        
         except ObjectDoesNotExist:
             return Response(
                 {
@@ -416,6 +428,7 @@ class NoteViewSet(viewsets.ViewSet):
             queryset = Note.objects.filter(Q(is_archive=True) &  (Q(user=request.user) | Q(collaborator__user=request.user)))
             serializer = NoteSerializer(queryset, many=True)
             return Response(serializer.data)
+        
         except DatabaseError as e:
             logger.error(f"Database error while fetching archived notes: {e}")
             return Response(
@@ -448,12 +461,23 @@ class NoteViewSet(viewsets.ViewSet):
         return: Response: Updated note data or error message.
         """
         try:
-            note = Note.objects.get(
-                Q(pk=pk) & (Q(user=request.user) | Q(collaborator__user=request.user))
-            )
+            note = Note.objects.get(pk=pk, user=request.user)
             note.is_trash = not note.is_trash
             note.save()
-            self.redis.delete(f"user_{request.user.id}")
+
+            notes = self.redis.get(note.id)
+            # If cache is empty, create a new cache entry
+            if not notes:
+                notes = [note]
+            else:
+                notes.append(note)
+
+            # Save the updated notes back into Redis
+            self.redis.save(note.id, notes)
+            logger.info("Note stored/updated in cache")
+
+            # self.redis.delete(f"user_{request.user.id}")
+
             serializer = NoteSerializer(note)
             return Response(serializer.data)
         except ObjectDoesNotExist:
@@ -758,6 +782,7 @@ class NoteViewSet(viewsets.ViewSet):
             )
 
         try:
+            #
             note = Note.objects.get(pk=note_id, user=request.user)
             labels = Label.objects.filter(id__in=label_ids)
             note.labels.remove(*labels)
